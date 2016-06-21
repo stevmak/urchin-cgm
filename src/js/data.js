@@ -538,7 +538,7 @@ var Data = function(c) {
       }
 
       if (loop['recommendedTempBasal']) {
-        var rate = (loop['recommendedTempBasal']['rate'] === 0) ? '0' : loop['recommendedTempBasal']['rate'].toFixed(2);
+        var rate = roundOrZero(loop['recommendedTempBasal']['rate']);
         out += ' ' + rate + 'x' + loop['recommendedTempBasal']['minutes'];
       }
 
