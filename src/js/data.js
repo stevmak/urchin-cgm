@@ -7,6 +7,7 @@ var Data = function(c) {
   var MAX_UPLOADER_BATTERIES = 1;
   var MAX_CALIBRATIONS = 1;
   var MAX_OPENAPS_STATUSES = 24;
+  var MAX_LOOP_STATUSES = 1;
   var MAX_BOLUSES_PER_HOUR_AVERAGE = 6;
   var MAX_BOLUSES = c.SGV_FETCH_SECONDS / (60 * 60) * MAX_BOLUSES_PER_HOUR_AVERAGE;
 
@@ -16,6 +17,7 @@ var Data = function(c) {
   var calibrationCache = new Cache('calibration', MAX_CALIBRATIONS);
   var bolusCache = new Cache('bolus', MAX_BOLUSES);
   var openAPSStatusCache = new Cache('openAPSStatus', MAX_OPENAPS_STATUSES);
+  var loopStatusCache = new Cache('loop', MAX_LOOP_STATUSES);
   var profileCache;
 
   // TODO this file should be split into several smaller modules
@@ -42,6 +44,7 @@ var Data = function(c) {
     calibrationCache.clear();
     bolusCache.clear();
     openAPSStatusCache.clear();
+    loopStatusCache.clear();
     profileCache = undefined;
     dexcomToken = undefined;
   };
@@ -478,6 +481,8 @@ var Data = function(c) {
   }
 
   d.getOpenAPSStatus = function(config) {
+    return d.getLoopStatus(config);
+
     return Promise.all([
       d.getOpenAPSStatusHistory(config),
       _getActiveTempBasal(config),
@@ -511,6 +516,33 @@ var Data = function(c) {
       var recencyDisplay = config.statusOpenAPSEvBG ? (recency + ': ') : ('(' + recency + ') ');
 
       return recencyDisplay + summary;
+    });
+  };
+
+  d.getLoopStatus = function(config) {
+    return d.getLastLoopStatus(config).then(function(loopStatuses) {
+      // "2016-06-20T19:40:47-0700" -> "19:40"
+      var loop = loopStatuses[0];
+      var hour = parseInt(loop['startDate'].substr(11, 2), 10);
+      var minStr = loop['startDate'].substr(13, 3);
+      var out;
+      if (hour < 12) {
+        out = (hour === 0 ? '12' : hour) + minStr + 'a';
+      } else {
+        out = (hour - 12) + minStr + 'p';
+      }
+
+      if (config.statusOpenAPSEvBG && loop['prediction'] && loop['prediction'].length) {
+        var evBG = Math.round(loop['prediction'][loop['prediction'].length - 1]['value']);
+        out += ' ->' + evBG;
+      }
+
+      if (loop['recommendedTempBasal']) {
+        var rate = (loop['recommendedTempBasal']['rate'] === 0) ? '0' : loop['recommendedTempBasal']['rate'].toFixed(2);
+        out += ' ' + rate + 'x' + loop['recommendedTempBasal']['minutes'];
+      }
+
+      return out;
     });
   };
 
@@ -617,6 +649,14 @@ var Data = function(c) {
       config.nightscout_url + '/api/v1/devicestatus.json?find[openaps][$exists]=true&count=' + MAX_OPENAPS_STATUSES,
       openAPSStatusCache,
       'created_at'
+    );
+  });
+
+  d.getLastLoopStatus = debounce(function(config) {
+    return getUsingCache(
+      config.nightscout_url + '/api/v1/devicestatus.json?find[startDate][$exists]=true&count=' + MAX_LOOP_STATUSES,
+      loopStatusCache,
+      'startDate'
     );
   });
 
