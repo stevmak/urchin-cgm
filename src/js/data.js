@@ -172,6 +172,8 @@ var Data = function(c) {
   };
 
   d.getRigBatteryLevel = function(config) {
+    return d.getLoopStatus(config);
+
     return d.getLastUploaderBattery(config).then(function(latest) {
       if (latest && latest.length && new Date(latest[0]['created_at']) >= new Date() - c.DEVICE_STATUS_RECENCY_THRESHOLD_SECONDS * 1000) {
         return latest[0]['uploaderBattery'] + '%';
@@ -481,8 +483,6 @@ var Data = function(c) {
   }
 
   d.getOpenAPSStatus = function(config) {
-    return d.getLoopStatus(config);
-
     return Promise.all([
       d.getOpenAPSStatusHistory(config),
       _getActiveTempBasal(config),
