@@ -529,7 +529,7 @@ var Data = function(c) {
       if (hour < 12) {
         out = (hour === 0 ? '12' : hour) + minStr + 'a';
       } else {
-        out = (hour - 12) + minStr + 'p';
+        out = (hour === 12 ? hour : hour - 12) + minStr + 'p';
       }
 
       if (config.statusOpenAPSEvBG && loop['prediction'] && loop['prediction'].length) {
