@@ -741,7 +741,20 @@ var data = function(c) {
   };
 
   d.getShareSGVsDateDescending = function(config) {
-    return d.getDexcomToken(config).then(d.requestDexcomSGVs.bind(this, config));
+    return d.getDexcomToken(config).then(d.requestDexcomSGVs.bind(this, config))
+      .then(d.assertTokenStillValid)
+      .catch(function(e) {
+        console.log('Requesting new Dexcom token: ' + e);
+        dexcomToken = undefined;
+        return d.getDexcomToken(config).then(d.requestDexcomSGVs.bind(this, config));
+      })
+      .then(d.convertShareSGVs)
+      .then(function(sgvs) {
+        var newSGVs = sgvs.filter(function(sgv) {
+          return sgvCache.entries.length === 0 || sgv['date'] > sgvCache.entries[0]['date'];
+        });
+        return sgvCache.update(newSGVs);
+      });
   };
 
   function dexcomServer(config) {
@@ -767,6 +780,14 @@ var data = function(c) {
     }
   };
 
+  d.assertTokenStillValid = function(response) {
+    if (response['Code'] === 'SessionNotValid') {
+      throw new Error(JSON.stringify(response));
+    } else {
+      return response;
+    }
+  };
+
   d.requestDexcomSGVs = function(config, token) {
     var count;
     if (sgvCache.entries.length) {
@@ -782,14 +803,7 @@ var data = function(c) {
       '&minutes=' + 1440,
       '&maxCount=' + count,
     ].join('');
-    return d.postJSON(url, DEXCOM_HEADERS)
-      .then(d.convertShareSGVs)
-      .then(function(sgvs) {
-        var newSGVs = sgvs.filter(function(sgv) {
-          return sgvCache.entries.length === 0 || sgv['date'] > sgvCache.entries[0]['date'];
-        });
-        return sgvCache.update(newSGVs);
-      });
+    return d.postJSON(url, DEXCOM_HEADERS);
   };
 
   d.convertShareSGVs = function(sgvs) {
