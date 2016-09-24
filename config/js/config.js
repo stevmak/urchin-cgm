@@ -498,6 +498,7 @@
     document.getElementById('statusText').value = current['statusText'] || '';
     document.getElementById('statusUrl').value = current['statusUrl'] || '';
     document.getElementById('statusJsonUrl').value = current['statusJsonUrl'] || '';
+    $('[name=statusLoopShowBattery]').prop('checked', !!current['statusLoopShowBattery']);
     $('[name=statusOpenAPSNetBasal]').val(current['statusOpenAPSNetBasal'] ? 'true' : 'false');
     $('[name=statusOpenAPSEvBG]').prop('checked', !!current['statusOpenAPSEvBG']);
     $('[name=statusMinRecencyToShowMinutes]').val(current['statusMinRecencyToShowMinutes']);
@@ -538,6 +539,7 @@
       statusText: document.getElementById('statusText').value,
       statusUrl: document.getElementById('statusUrl').value,
       statusJsonUrl: document.getElementById('statusJsonUrl').value,
+      statusLoopShowBattery: $('[name=statusLoopShowBattery]').is(':checked'),
       statusOpenAPSNetBasal: $('[name=statusOpenAPSNetBasal]').val() === 'true',
       statusOpenAPSEvBG: $('[name=statusOpenAPSEvBG]').is(':checked'),
       statusLine1: $('#statusLine1').val(),
